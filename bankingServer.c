@@ -6,9 +6,6 @@ typedef struct account{
 	struct account *next;
 };
 
-
-
-
 boolean checkBankName(struct accounts** head_ref, char *name){ //check if the bankAccount already exists
 	account *ptr = head_ref;
 	while(ptr != NULL){
@@ -22,7 +19,7 @@ boolean checkBankName(struct accounts** head_ref, char *name){ //check if the ba
 
 int create(account* acc, char* name){
 	if(checkBankName() == 0){
-		printf("Error sowwy no can do");
+		printf("Error: Account already exists");
 	}
 	//create new Node
 	account->accountName = name;
@@ -90,6 +87,18 @@ void printAccounts(accounts **head_ref){ //print account every 15 secs
 
 int main(int argc, char **argv){
 	int numOfAccounts =0;
-
+	signal(SIGALARM, handler);
 	pthread_t print;
+}
+
+void handler(int sig){
+	accounts *ptr=head_ref;
+	while(ptr != NULL){
+		printf(ptr->accountName+"\t"+ptr->balance+"\t");
+		if(ptr->inSession==true)
+			printf("IN SERVICE");
+		ptr = ptr->next;
+	}
+	alarm(15);
+	signal(SIGALRM, handler);
 }
