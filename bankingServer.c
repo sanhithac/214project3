@@ -10,27 +10,26 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/shm.h>
-#include <sys/ipc.h>
 #include <signal.h>
-#include <stdbool.h>
-# define SHM_SIZE 1024
-# define BUFFSIZE 256
+#include <sys/ipc.h>
 
-typedef struct account{
-	char accountName[255];
+typedef struct Account{
+  char* accountName;
 	double balance;
 	int inSession; //boolean
-	struct account *next;
-};
+	struct Account *next;
+}account;
 
 account *head_ref;
+int inSession =0;
+char buffer[256];
+struct sockaddr_in serv_addr, cli_addr;
 
-void printhandler(int sig);
-void terminate(int sig);
-void client_thread(int newSockfd);
 
-boolean checkBankName(struct account** head_ref, char *name){ //check if the bankAccount already exists
-  struct account *ptr = *head_ref;
+
+
+int checkBankName(account* head_ref, char *name){ //check if the bankAccount already exists
+   account *ptr = head_ref;
 	while(ptr != NULL){
 		if(ptr->accountName == name){
 			return 0;
@@ -40,7 +39,7 @@ boolean checkBankName(struct account** head_ref, char *name){ //check if the ban
 	return 1;
 }
 
-int create(struct account** head_ref, char* name){ //create a new account
+int create(account* head_ref, char* name){ //create a new account
   //check for inSession before continuing
   if(inSession == 1){
     printf("ERROR: inSession flag is on");
@@ -52,14 +51,14 @@ int create(struct account** head_ref, char* name){ //create a new account
 		exit(0);
 	}
    //creating a new node
-   struct account* ptr = (struct account*)malloc(sizeof(struct account));
-   struct account* last = *head_ref;
+   struct account* ptr = (struct account*)malloc(sizeof(account));
+   struct account* last = head_ref;
    ptr->accountName = name;
    ptr->balance =0;
    ptr->next = NULL;
    //adding to the end of the LL
-   if(*head_ref==NULL){
-     *head_ref = ptr;
+   if(head_ref==NULL){
+     head_ref = ptr;
      return 0;
    }
    while(last->next != NULL){
@@ -71,11 +70,11 @@ int create(struct account** head_ref, char* name){ //create a new account
    return 0;
 }
 
-int serve(accounts ** head_ref, char* name, pthread_mutex_t *mut){
+int serve(account * head_ref, char* name, pthread_mutex_t *mut){
 	account *ptr = head_ref;
 	while(ptr != NULL){
 		if(ptr->accountName == name){
-			ptr->inSession=true;
+			ptr->inSession=1;
 			pthread_mutex_lock(&mut);
 			printf("Session service started!");
 			return 0;
@@ -92,7 +91,7 @@ int deposit(account* acc, double amount){
 		printf("Error: Account not in service");
 		return 0;
 	}
-	double bal=0.0
+	double bal=0.0;
 	bal=add(acc->balance, amount);
 	acc->balance=bal;
 	printf("Amount deposited!");
@@ -109,85 +108,38 @@ int withdraw(account* acc, double amount){
 		printf("Error: Invalid withdrawal attempt");
 		return 0;
 	}
-	double bal=0.0
+	double bal=0.0;
 	bal=(acc->balance)-amount;
 	acc->balance=bal;
 	printf("Amount withdrawn!");
 	return 0;
 }
 
-int end(accounts *acc, pthread_mutex_t *mut){
+int end(account *acc, pthread_mutex_t *mut){
 	acc->inSession=0;
 	pthread_mutex_unlock(&mut);
 	printf("Session ended!");
 	return 0;
 }
 
-/*void printAccounts(accounts **head_ref){ //print account every 15 secs
+void printAccounts(account *head_ref){ //print account every 15 secs
 	printf();//print the list of accounts
-}*/
+}
 
-
-int main(int argc, char **argv){
-	if(argc <2){
-		printf("Error: enter port number\n");
-		exit(1);
+void printhandler(int sig){
+	account  *ptr =head_ref;
+	while(ptr != NULL){
+		printf(ptr->accountName+"\t"+ptr->balance+"\t");
+		if(ptr->inSession==1)
+			printf("IN SERVICE");
+		ptr = ptr->next;
 	}
-	char buffer[256];
-	
-	int numOfAccounts =0;
-
-	signal(SIGALRM, printhandler);//retest
 	alarm(15);
-	signal(SIGINT, terminate);//finish
-
-	struct sockaddr_in serv_addr;
-	struct sockaddr_in cli_addr;
-
-	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-	int port = atoi(argv[1]);
-
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serv_addr.sin_port = htons(port);
-
-	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
-		error("ERROR: cannot bind");
-	}
-
-	if(listen(sockfd, 10)==-1){
-		printf("ERROR: Listen error.\n");
-		return 0;
-	}
-	
-	while(1){
-		if(listen(sockfd, 10)==-1){
-			printf("ERROR: Listen error.\n");
-			return 0;
-		}
-		else{
-			int clilen = sizeof(cli_addr);
-			int newSockfd = accept(sockfd,(struct sockaddr*)&cli_addr, &clilen);
-			if (newSockfd < 0){
-				error("ERROR on accept");
-				continue;
-			}
-			printf("Connection to client successful.\n");
-			pthread_t client;
-		
-			if(pthread_create(&client, 0, client_thread, &newSockfd) != 0){
-				printf("ERROR: client thread could not be created\n");
-				continue;
-			} 
-		}
-	}
-
-	return 0;
+	signal(SIGALRM, handler);
 }
 
 void client_thread(int newSockfd){
-	write(newSockfd, "Connection to server successful", strlen(sendBuff));
+	write(newSockfd, "Connection to server successful", strlen(buffer));
 	while(1){
 		bzero(buffer,256);
 		int n = read(newSockfd,buffer,255);
@@ -206,30 +158,64 @@ void client_thread(int newSockfd){
 	}
 }
 
-void printhandler(int sig){
-	char info[1024];
-	while(ptr != NULL){
-		printf("%s", ptr->accountName);
-		printf("\t");
-		printf("%s", ptr->balance);
-		printf("\t");
-		if(ptr->inSession==true)
-			printf("IN SERVICE");
-		ptr = ptr->next;
-	}
-	signal(SIGALRM, printhandler);
-	alarm(15);
-	return;
-}
 
-void terminate(int sig){
-	printf("got sig\n");
-	//stop timer
-	//lock all accounts
-	//disconnect all clients
-	//send all clients shutdown message
-	//deallocate all memory
-	//close all sockets
-	//join all threads
-	return;
+int main(int argc, char **argv){
+	if(argc <2){
+		printf("Error");
+		exit(1);
+	}
+	char buffer[256];
+	int numOfAccounts =0;
+        //signal(SIGALRM, printhandler);
+	//add sigint for quitting
+	
+	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	
+	/*if(sockfd < 0){
+		error("Error opening Socket");
+	} */
+	
+	//bzero((char *)&serv_addr, sizeof(serv_addr)); //erases memory at this addr
+	int port = atoi(argv[1]);
+	
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	serv_addr.sin_port = htons(port);
+	
+	//int k = gethostname(argv[1]);
+	
+	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
+		error("ERROR on binding");
+	}
+	if(listen(sockfd, 2)==-1){
+		printf("ERROR: Listen error.\n");
+		return NULL;
+		//change the 2 later to numOfClients that you want
+	}
+	
+	while(1){
+		if(listen(sockfd, 2)==-1){
+			printf("ERROR: Listen error.\n");
+			return NULL;
+			//change the 2 later to numOfClients that you want
+		}
+		else{
+			int clilen = sizeof(cli_addr);
+			int newSockfd = accept(sockfd,(struct sockaddr*)&cli_addr, &clilen);
+			if (newSockfd < 0){
+				error("ERROR on accept");
+				continue;
+			}
+			printf("Connection to client successful.\n");
+			//create new thread for client
+			pthread_t client;
+		
+			if(pthread_create(&client, 0, client_thread, &newSockfd) != 0){
+				printf("ERROR: client thread could not be created\n");
+				continue;
+			}		
+		}
+	return 0;
+	}
+
 }
