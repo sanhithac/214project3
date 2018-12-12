@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
+#include <signal.h>
 # define SHM_SIZE 1024
 # define BUFFSIZE 256
 
