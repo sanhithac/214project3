@@ -95,9 +95,9 @@ int end(accounts *acc, pthread_mutex_t *mut){
 	return 0;
 }
 
-void printAccounts(accounts **head_ref){ //print account every 15 secs
+/*void printAccounts(accounts **head_ref){ //print account every 15 secs
 	printf();//print the list of accounts
-}
+}*/
 
 
 int main(int argc, char **argv){
@@ -107,9 +107,9 @@ int main(int argc, char **argv){
 	}
 	char buffer[256];
 	
-	//int numOfAccounts =0;
-	//signal(SIGALRM, handler);
-	//pthread_t print;
+	int numOfAccounts =0;
+	signal(SIGALRM, printhandler);
+	//add sigint for quitting
 	
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	
@@ -149,23 +149,40 @@ int main(int argc, char **argv){
 				continue;
 			}
 			printf("Connection to client successful.\n");
-			write(newSockfd, "Connection to server successful", strlen(sendBuff));
 			//create new thread for client
-			bzero(buffer,256);
-			int n = read(newSockfd,buffer,255);
-			if(n<0)
-				error("ERROR reading from socket");
-			printf("Here is the message: %s\n", buffer); 
-			n = write(newSockfd, "I got your message", 18); 
-			if(n<0)
-				error("ERROR writing to socket");
+			pthread_t client;
+		
+			if(pthread_create(&client, 0, client_thread, &newSockfd) != 0){
+				printf("ERROR: client thread could not be created\n");
+				continue;
+			}		
 		}
 	return 0;
 	}
 
 }
 
-void handler(int sig){
+void client_thread(int newSockfd){
+	write(newSockfd, "Connection to server successful", strlen(sendBuff));
+	while(1){
+		bzero(buffer,256);
+		int n = read(newSockfd,buffer,255);
+		if(n<0){
+			error("ERROR reading from socket");
+		}
+		else{
+			//tokenize the input
+			//check what the command is
+			//call the respective command
+		}
+		printf("Here is the message: %s\n", buffer); 
+		n = write(newSockfd, "I got your message", 18); 
+		if(n<0)
+			error("ERROR writing to socket");
+	}
+}
+
+void printhandler(int sig){
 	accounts *ptr=head_ref;
 	while(ptr != NULL){
 		printf(ptr->accountName+"\t"+ptr->balance+"\t");
