@@ -57,42 +57,53 @@ int checkConnection(int sd) //spammed periodically to check whether the server i
 }
 
 void *readToServer(void *fd){
-	int sd = *(int*)fd;
-	char clibuff[BUFFSIZE]="";
-	char *token="";
-	while(1){ //while exit condition is not provided by the user
-		bzero(clibuff, BUFFSIZE); //clearing out the buffer to recieve the command
-		int size_input=read(0, clibuff, BUFFSIZE);
-		if(!checkConnection(sd)) 
-			exit(0);
-		//update information if command is start
-		if(strncmp(clibuff,"create",6) == 0){
-			strncpy(startedsession,clibuff+6,size_input-6);		// store the name of session
-			startedsession[size_input-5]=='\0';
-			finished=0;											//session started, not finished
-			sockd=sd;											//update global variable 
-			}
-		else if(strncmp(clibuff,"finish",6)==0)					//update finished flag to 1
-			finished=1;
-			
-		write(sd, clibuff, size_input);
-		sleep(2);
-		if(!checkConnection(sd)) exit(0);
-		token=strtok(clibuff, "0");
-	}	
-	commandControl=1; //thread sync
-	exit(0);
-	return 0;
+	//send
+	char sendToServerBuff[256];
+	int sockfd = *(int*)fd;
+	while(1){
+		printf("Please enter a command followed by a value (if applicable):");
+		char command[256];
+
+		memset(command, 0, 256);
+		memset(sendToServerBuff, 0, strlen(sendToServerBuff));
+
+		char op[255];
+		char arg[255];
+		fgets(command,256, stdin); //read command from user
+		if((strlen(command) > 0) && (command[strlen(command)-1] == '\n')){
+			command[strlen(command)-1] = '\0';
+		}
+		int commandAssigned = sscanf(command, "%s %s %s", op, arg, err);
+		
+		//If there are two arguments then they will be concatenated
+		if(commandAssigned == 2){
+			strcat(op, " ");
+			strcat(op, arg);
+		//If there are more than two arguments then the command is invalid.			
+		} else if(commandAssigned > 2){
+			printf("ERROR: Command not recognized.\n");
+			continue;
+		} 
+		strcpy(sendToServerBuff, op);
+		if((send(sockfd,sendBuff, strlen(sendBuff),0))== -1) {
+            printf("ERROR: Could not send message.\n");
+            close(sockfd);
+            exit(1);
+        }
+        sleep(2);
+	}
+	return NULL;
 }
 
 void *readFromServer(void *fd){ //read from server
+	//recv
 	char buffer[256];
     memset(buffer, 0, sizeof(buffer));
     int network_socket_fd = *(int *)fd;
     int status;
     while(1){
     	memset(buffer, 0, sizeof(buffer));
-    	
+
     }
     while((status = read(network_socket_fd, buffer, sizeof(buffer)) ) > 0 ){
         printf("%s", buffer);
