@@ -21,8 +21,8 @@ typedef struct account{
 	struct account *next;
 };
 
-boolean checkBankName(struct accounts** head_ref, char *name){ //check if the bankAccount already exists
-	account *ptr = head_ref;
+boolean checkBankName(struct account** head_ref, char *name){ //check if the bankAccount already exists
+  struct account *ptr = *head_ref;
 	while(ptr != NULL){
 		if(ptr->accountName == name){
 			return 0;
@@ -32,15 +32,35 @@ boolean checkBankName(struct accounts** head_ref, char *name){ //check if the ba
 	return 1;
 }
 
-int create(account* acc, char* name){
-	if(checkBankName() == 0){
+int create(struct account** head_ref, char* name){ //create a new account
+  //check for inSession before continuing
+  if(inSession == 1){
+    printf("ERROR: inSession flag is on");
+    exit(0);
+   }
+  //check for a unique acc name
+   if(checkBankName(head_ref, name) == 0){
 		printf("Error: Account already exists");
+		exit(0);
 	}
-	//create new Node
-	account->accountName = name;
-	account->balance = 0;
-	printf("Account created!");
-	return 0;
+   //creating a new node
+   struct account* ptr = (struct account*)malloc(sizeof(struct account));
+   struct account* last = *head_ref;
+   ptr->accountName = name;
+   ptr->balance =0;
+   ptr->next = NULL;
+   //adding to the end of the LL
+   if(*head_ref==NULL){
+     *head_ref = ptr;
+     return 0;
+   }
+   while(last->next != NULL){
+     last = last->next;
+   }
+   last->next = ptr;
+  
+   printf("Account created!");
+   return 0;
 }
 
 int serve(accounts ** head_ref, char* name, pthread_mutex_t *mut){
@@ -60,7 +80,7 @@ int serve(accounts ** head_ref, char* name, pthread_mutex_t *mut){
 
 int deposit(account* acc, double amount){
 	//check to make sure acc is in service
-	if(acc->inSession==false){
+	if(acc->inSession==0){
 		printf("Error: Account not in service");
 		return 0;
 	}
@@ -72,7 +92,7 @@ int deposit(account* acc, double amount){
 }
 
 int withdraw(account* acc, double amount){
-	if(acc->inSession==false){
+	if(acc->inSession==0){
 		printf("Error: Account not in service");
 		return 0;
 	}
@@ -89,7 +109,7 @@ int withdraw(account* acc, double amount){
 }
 
 int end(accounts *acc, pthread_mutex_t *mut){
-	acc->inSession=false;
+	acc->inSession=0;
 	pthread_mutex_unlock(&mut);
 	printf("Session ended!");
 	return 0;
@@ -186,7 +206,7 @@ void printhandler(int sig){
 	accounts *ptr=head_ref;
 	while(ptr != NULL){
 		printf(ptr->accountName+"\t"+ptr->balance+"\t");
-		if(ptr->inSession==true)
+		if(ptr->inSession==1)
 			printf("IN SERVICE");
 		ptr = ptr->next;
 	}
