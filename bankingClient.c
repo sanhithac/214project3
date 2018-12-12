@@ -107,46 +107,55 @@ void *readFromServer(void *fd){ //read from server
 
 int main(int argc, char** argv){
 	char buffer[256];
+	int port = atoi(argv[2]);
 
 	if(argc != 3){
 		error("Error. Invalid arguments");
 		exit(1);
 	}
-	
-	//bzero((char *)&serv_addr, sizeof(serv_addr)); //erases memory at this addr
-	int port = atoi(argv[2]);
 
+
+	memset(buffer, '0', sizeof(buffer));
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(sockfd < 0){
 		error("Error opening Socket");
 	}
 
-	int server = gethostname(argv[0]);
-	if(server == NULL){
-		printf("Error, no such host");
-		exit(0);
-	}
-	bzero((char*) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
-	bcopy((char*)server->h_addr,(char*)&serv_addr.sin_addr.s_addr,server->h_length);
 	serv_addr.sin_port = htons(port);
-	if(connect(sockfd, (struct sockaddr *)&serv_addr, &len) <0){
-		//printf("Established connection");
-		error("ERROR connecting");
-	}
-	else{
-		printf("Connection Complete");
-	} 
-	printf("Please eenter a message:");
-	bzero(buffer,256)
-	fgets(buffer,255,stdin);
-	int n =write(sockfd, buffer,strlen(buffer));
-	if (n<0)
-		error("Error on writing to socket");
-	bzero(buffer,256);
-	n = read(sockfd,buffer,255);
-	if (n<0)
-		error("ERROR  reading from packet");
+	serv_addr.sin_addr.s_addr = inet_addr(argv[2]);
 
+
+	//attempt connecting to the server
+	while(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) <0){
+		printf("Establishing connection with server...\n");
+		sleep(3);
+	}
+
+	//first read to insure connection
+	if((n=read(sockfd,buffer,sizeof(buffer)-1)) > 0){
+		buffer[n] =0;
+		if(fputs(buffer, stdout) == EOF){
+			printf("ERROR: Fputs error.\n");
+		}
+	}
+	if(n<0){
+		printf("ERROR: Read error.\n");
+	}
+	pthread_t toServer;
+	pthread_t fromServer;
+	signal(SIGINT, sigint_handler);
+	if(pthread_create(&toServer, NULL, &readToServer, &sockfd) != 0){
+		printf("ERROR: Failure launching command input thread.\n");
+		exit(1);
+	}
+	if(pthread_create(&fromServer, NULL, &readFromServer, &sockfd) != 0){
+		printf("ERROR: Failure launching response output thread.\n");
+		exit(1);
+	}
+	
+	pthread_join(toServer, NULL);
+	pthread_join(fromServer, NULL);
+	printf("Client end.\n");
 	return 0;
 }
