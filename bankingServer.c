@@ -91,14 +91,22 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 	char buffer[256];
+	
+	//int numOfAccounts =0;
+	//signal(SIGALRM, handler);
+	//pthread_t print;
+	
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(sockfd < 0){
+	
+	/*if(sockfd < 0){
 		error("Error opening Socket");
-	} 
-	bzero((char *)&serv_addr, sizeof(serv_addr)); //erases memory at this addr
+	} */
+	
+	//bzero((char *)&serv_addr, sizeof(serv_addr)); //erases memory at this addr
 	int port = atoi(argv[1]);
+	
 	serv_addr.sin_family = AF_NET;
-	serv_addr.sin_addr.s_addr = INADDR_ANY;
+	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	serv_addr.sin_port = htons(port);
 	
 	//int k = gethostname(argv[1]);
@@ -106,27 +114,40 @@ int main(int argc, char **argv){
 	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
 		error("ERROR on binding");
 	}
-	listen(sockfd, 2); //change the 2 later to numOfClients that you want
+	if(listen(sockfd, 2)==-1){
+		printf("ERROR: Listen error.\n");
+		return NULL;
+		//change the 2 later to numOfClients that you want
+	}
 	
-	int clilen = sizeof(cli_addr);
-	int newSockfd = accept(sockfd,(struct sockaddr*)&cli_addr, &clilen);
-	if (newSockfd < 0){
-		error("ERROR on accept");
+	while(1){
+		if(listen(sockfd, 2)==-1){
+			printf("ERROR: Listen error.\n");
+			return NULL;
+			//change the 2 later to numOfClients that you want
+		}
+		else{
+			int clilen = sizeof(cli_addr);
+			int newSockfd = accept(sockfd,(struct sockaddr*)&cli_addr, &clilen);
+			if (newSockfd < 0){
+				error("ERROR on accept");
+				continue;
+			}
+			printf("Connection to client successful.\n");
+			write(newSockfd, "Connection to server successful", strlen(sendBuff));
+			//create new thread for client
+			bzero(buffer,256);
+			int n = read(newSockfd,buffer,255);
+			if(n<0)
+				error("ERROR reading from socket");
+			printf("Here is the message: %s\n", buffer); 
+			n = write(newSockfd, "I got your message", 18); 
+			if(n<0)
+				error("ERROR writing to socket");
+		}
+	return 0;
 	}
 
-	bzero(buffer,256);
-	int n = read(newSockfd,buffer,255);
-	if(n<0)
-		error("ERROR reading from socket");
-	printf("Here is the message: %s\n", buffer); 
-	n = write(newSockfd, "I got your message", 18); 
-	if(n<0)
-		error("ERROR writing to socket");
-	return 0;
-	
-	//int numOfAccounts =0;
-	//signal(SIGALARM, handler);
-	//pthread_t print;
 }
 
 void handler(int sig){
