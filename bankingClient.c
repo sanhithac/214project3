@@ -1,24 +1,29 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
+#include <semaphore.h>
+#include <sys/wait.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h> 
+#include <netdb.h>
+#include <errno.h>	
+#include <stdlib.h>
 #include <pthread.h>
+#include <sys/shm.h>
+#include <sys/ipc.h>
+#include <netinet/in.h>
 #include <signal.h>
 
-#define BUFFSIZE 256
 
 static int commandControl; //switch that controls thread synchronization
 char startedsession[100];  //hold the name of the session started. If in case signint occurs use this to finish the session
 int quiting =-1;	       //flag -1 -> session not started 0 -> session started not finished 1->session finished
 int sockd;
-int serv_addr, cli_addr;
+struct sockaddr_in serv_addr, cli_addr;
 
 char buffer[256];
 char sendToServerBuff[256];
+
 //done
 void error(char* msg){
 	perror(msg);
@@ -71,6 +76,7 @@ void *readToServer(void *fd){ //sends to server
 
 		char op[255];
 		char arg[255];
+		char err[255];
 		fgets(command,256, stdin); //read command from user
 		if((strlen(command) > 0) && (command[strlen(command)-1] == '\n')){
 			command[strlen(command)-1] = '\0';
@@ -87,7 +93,7 @@ void *readToServer(void *fd){ //sends to server
 			continue;
 		} 
 		strcpy(sendToServerBuff, op);
-		if((send(sockfd,sendBuff, strlen(sendBuff),0))== -1) {
+		if((send(sockfd,sendToServerBuff, strlen(sendToServerBuff),0))== -1) {
             printf("ERROR: Could not send message.\n");
             close(sockfd);
             exit(1);
@@ -145,6 +151,7 @@ int main(int argc, char** argv){
 	}
 
 	//first read to insure connection
+	int n;
 	if((n=read(sockfd,buffer,sizeof(buffer)-1)) > 0){
 		buffer[n] =0;
 		if(fputs(buffer, stdout) == EOF){
@@ -156,7 +163,7 @@ int main(int argc, char** argv){
 	}
 	pthread_t toServer;
 	pthread_t fromServer;
-	signal(SIGINT, sigint_handler);
+	signal(SIGINT, sig_handler);
 	if(pthread_create(&toServer, NULL, &readToServer, &sockfd) != 0){
 		printf("ERROR: Failure launching command input thread.\n");
 		exit(1);
