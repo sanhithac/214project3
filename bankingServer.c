@@ -1,4 +1,19 @@
-//server
+#include <stdio.h>
+#include <unistd.h>
+#include <semaphore.h>
+#include <sys/wait.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <errno.h>	
+#include <stdlib.h>
+#include <pthread.h>
+#include <sys/shm.h>
+#include <sys/ipc.h>
+# define SHM_SIZE 1024
+# define BUFFSIZE 256
+
 typedef struct account{
 	char accountName[255];
 	double balance;
