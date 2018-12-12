@@ -1,4 +1,3 @@
-//client
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -14,20 +13,24 @@
 
 static int commandControl; //switch that controls thread synchronization
 char startedsession[100];  //hold the name of the session started. If in case signint occurs use this to finish the session
-int finished =-1;	       //flag -1 -> session not started 0 -> session started not finished 1->session finished
+int quiting =-1;	       //flag -1 -> session not started 0 -> session started not finished 1->session finished
 int sockd;
 int serv_addr, cli_addr;
 
+char buffer[256];
+char sendToServerBuff[256];
+//done
 void error(char* msg){
 	perror(msg);
 	exit(1);
 }
+//done
 void sig_handler(int signo){
-	char finbuffer[BUFFSIZE] = "finish ";
+	char quitbuffer[256] = "quit ";
 	if(signo==SIGINT) {
-		if(finished==0){
+		if(quiting==0){
 			printf("\nExititing client abruptly.. finishing started session\n");
-			write(sockd,strcat(finbuffer,startedsession),BUFFSIZE);
+			write(sockd,strcat(quitbuffer,startedsession),256);
 			exit(0);
 		}
 		else{
@@ -55,10 +58,9 @@ int checkConnection(int sd) //spammed periodically to check whether the server i
 	else 
 		return 1;
 }
-
-void *readToServer(void *fd){
+//done
+void *readToServer(void *fd){ //sends to server
 	//send
-	char sendToServerBuff[256];
 	int sockfd = *(int*)fd;
 	while(1){
 		printf("Please enter a command followed by a value (if applicable):");
@@ -94,30 +96,29 @@ void *readToServer(void *fd){
 	}
 	return NULL;
 }
-
+//done
 void *readFromServer(void *fd){ //read from server
 	//recv
-	char buffer[256];
-    memset(buffer, 0, sizeof(buffer));
-    int network_socket_fd = *(int *)fd;
-    int status;
-    while(1){
-    	memset(buffer, 0, sizeof(buffer));
-
-    }
-    while((status = read(network_socket_fd, buffer, sizeof(buffer)) ) > 0 ){
-        printf("%s", buffer);
-        memset(buffer, 0, sizeof(buffer));
-    }
-    printf("The Bank server has closed connection");
-    close(network_socket_fd);
-    free(fd);
-    return 0;
+	int sockfd = *(int*)fd;
+	while(1){
+		memset(buffer, 0, strlen(buffer));
+		int num = recv(sockfd, sendToServerBuff, sizeof(sendToServerBuff),0);
+		if(num <=0){
+			printf("ERROR: connection is closed.\n");
+			break;
+		}
+		if(strcmp(sendToServerBuff, "end")==0){
+			printf("Client closing.\n");
+			exit(0);
+		}
+		if(sendToServerBuff[0] == NULL){
+			printf("%s\n", sendToServerBuff);
+		}
+	}
+	return NULL;
 }
-
-
+//done
 int main(int argc, char** argv){
-	char buffer[256];
 	int port = atoi(argv[2]);
 
 	if(argc != 3){
