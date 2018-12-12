@@ -12,6 +12,7 @@
 #include <sys/shm.h>
 #include <sys/ipc.h>
 #include <signal.h>
+#include <stdbool.h>
 # define SHM_SIZE 1024
 # define BUFFSIZE 256
 
@@ -21,6 +22,12 @@ typedef struct account{
 	int inSession; //boolean
 	struct account *next;
 };
+
+account *head_ref;
+
+void printhandler(int sig);
+void terminate(int sig);
+void client_thread(int newSockfd);
 
 boolean checkBankName(struct account** head_ref, char *name){ //check if the bankAccount already exists
   struct account *ptr = *head_ref;
@@ -123,44 +130,41 @@ int end(accounts *acc, pthread_mutex_t *mut){
 
 int main(int argc, char **argv){
 	if(argc <2){
-		printf("Error");
+		printf("Error: enter port number\n");
 		exit(1);
 	}
 	char buffer[256];
 	
 	int numOfAccounts =0;
-	signal(SIGALRM, printhandler);
-	//add sigint for quitting
-	
+
+	signal(SIGALRM, printhandler);//retest
+	alarm(15);
+	signal(SIGINT, terminate);//finish
+
+	struct sockaddr_in serv_addr;
+	struct sockaddr_in cli_addr;
+
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	
-	/*if(sockfd < 0){
-		error("Error opening Socket");
-	} */
-	
-	//bzero((char *)&serv_addr, sizeof(serv_addr)); //erases memory at this addr
+
 	int port = atoi(argv[1]);
-	
-	serv_addr.sin_family = AF_NET;
+
+	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	serv_addr.sin_port = htons(port);
-	
-	//int k = gethostname(argv[1]);
-	
+
 	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
-		error("ERROR on binding");
+		error("ERROR: cannot bind");
 	}
-	if(listen(sockfd, 2)==-1){
+
+	if(listen(sockfd, 10)==-1){
 		printf("ERROR: Listen error.\n");
-		return NULL;
-		//change the 2 later to numOfClients that you want
+		return 0;
 	}
 	
 	while(1){
-		if(listen(sockfd, 2)==-1){
+		if(listen(sockfd, 10)==-1){
 			printf("ERROR: Listen error.\n");
-			return NULL;
-			//change the 2 later to numOfClients that you want
+			return 0;
 		}
 		else{
 			int clilen = sizeof(cli_addr);
@@ -170,17 +174,16 @@ int main(int argc, char **argv){
 				continue;
 			}
 			printf("Connection to client successful.\n");
-			//create new thread for client
 			pthread_t client;
 		
 			if(pthread_create(&client, 0, client_thread, &newSockfd) != 0){
 				printf("ERROR: client thread could not be created\n");
 				continue;
-			}		
+			} 
 		}
-	return 0;
 	}
 
+	return 0;
 }
 
 void client_thread(int newSockfd){
@@ -204,13 +207,29 @@ void client_thread(int newSockfd){
 }
 
 void printhandler(int sig){
-	accounts *ptr=head_ref;
+	char info[1024];
 	while(ptr != NULL){
-		printf(ptr->accountName+"\t"+ptr->balance+"\t");
-		if(ptr->inSession==1)
+		printf("%s", ptr->accountName);
+		printf("\t");
+		printf("%s", ptr->balance);
+		printf("\t");
+		if(ptr->inSession==true)
 			printf("IN SERVICE");
 		ptr = ptr->next;
 	}
+	signal(SIGALRM, printhandler);
 	alarm(15);
-	signal(SIGALRM, handler);
+	return;
+}
+
+void terminate(int sig){
+	printf("got sig\n");
+	//stop timer
+	//lock all accounts
+	//disconnect all clients
+	//send all clients shutdown message
+	//deallocate all memory
+	//close all sockets
+	//join all threads
+	return;
 }
