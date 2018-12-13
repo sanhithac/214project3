@@ -24,8 +24,14 @@ struct sockaddr_in serv_addr, cli_addr;
 char buffer[256];
 char sendToServerBuff[256];
 
+error(char*void msg);
+void sig_handler(int signo);
+int checkConnection(int sd);
+void *readToServer(void *fd);
+void *readFromServer(void *fd);
+
 //done
-void error(char* msg){
+error(char*void msg){
 	perror(msg);
 	exit(1);
 }
