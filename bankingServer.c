@@ -52,7 +52,7 @@ void query(account* acc){
   sprintf(message,"Your account balance is $%.2f.\n\n", account->balance);
   write(newSock, message, sizeof(message)-1);
 }
-//done
+
 int end(account *acc, pthread_mutex_t *mut){
 	acc->inSession=0;
 	write(newSock,"Session ended!\n",strlen(buffer));
@@ -60,13 +60,7 @@ int end(account *acc, pthread_mutex_t *mut){
 	return 0;
 }
 
-int create(account* head_ref, char* name){ //create a new account
-  //check for inSession before continuing
- /* if(inSessionOn == 1){
-    printf("ERROR: inSession flag is on");
-    exit(0);
-   }
- */
+account *create(account* head_ref, char* name){ //create a new account
   //check for a unique acc name
    if(checkBankName(head_ref, name) == 0){
 		printf("Error: Account already exists");
@@ -82,7 +76,7 @@ int create(account* head_ref, char* name){ //create a new account
    //adding to the end of the LL
    if(head_ref==NULL){  
      head_ref = ptr;
-     return 0;
+     return ptr;
    }
    while(last->next != NULL){
      last = last->next;
@@ -90,22 +84,22 @@ int create(account* head_ref, char* name){ //create a new account
    last->next = ptr;
   
    printf("Account created!");
-   return 0;
+   return ptr;
 }
 
-int serve(account * head_ref, char* name, pthread_mutex_t *mut){
+account *serve(account * head_ref, char* name, pthread_mutex_t *mut){
 	account *ptr = head_ref;
 	while(ptr != NULL){
 		if(ptr->accountName == name){
 			ptr->inSession=1;
 			//	pthread_mutex_lock(&mut);
 			printf("Session service started!");
-			return 0;
+			return ptr;
 		}
 		ptr = ptr->next;
 	}
 	printf("Error: Account not found");
-	return 0;
+	return NULL;
 }
 
 int deposit(account* acc, double amount){
@@ -126,7 +120,6 @@ int withdraw(account* acc, double amount){
 		printf("Error: Account not in service");
 		return 0;
 	}
-	//check(if withdrawal) to see if amount is larger than balance
 	if(amount>(acc->balance)){
 		printf("Error: Invalid withdrawal attempt");
 		return 0;
@@ -173,10 +166,10 @@ void *client_thread(void* newSockfd){
 			        create(head_ref, name);//return account
 			      }
 			      else{
-			  	     printf("ERROR: enter name");//make these writes
+			  	     write(*newSock, "ERROR: Enter name", strlen("ERROR: Enter name"));
 			      }
 			    }else{
-				    printf("ERROR: cannot create account while in session");
+				    write(*newSock, "ERROR: cannot create account while in session", strlen("ERROR: cannot create account while in session"));
 			    }
 				  //SERVE
 			  }else if(strcmp(command, "serve")==0){
@@ -186,10 +179,10 @@ void *client_thread(void* newSockfd){
 			        //serve(name, mut)//return account
 				 inSessionOn=1;
 			      }else{
-			  	       printf("ERROR: enter name");
+			  	     write(*newSock, "ERROR: Enter name", strlen("ERROR: Enter name"));
 			      }
 			    }else{
-				    printf("ERROR: cannot start another service while in session");
+				    write(*newSock, "ERROR: cannot start another service while in session", strlen("ERROR: cannot start another service while in session"));
 			    }
 				  //DEPOSIT
 			  }else if(strcmp(command, "deposit")==0){
@@ -198,10 +191,10 @@ void *client_thread(void* newSockfd){
 			     		 double amt=strtok(NULL, s);
 					 //deposit(account, amt);
 				 }else{
-					 printf("ERROR: enter amountt");
+			  	     write(*newSock, "ERROR: Enter amount", strlen("ERROR: Enter amount"));
 				 }
 			    }else{
-				    printf("ERROR: cannot deposit before starting a service");
+				    write(*newSock, "ERROR: cannot deposit before starting a service", strlen("ERROR: cannot deposit before starting a service"));
 			    }
 				  //WITHDRAW
 			  }else if(strcmp(command, "withdraw")==0){
@@ -210,17 +203,17 @@ void *client_thread(void* newSockfd){
 			     		 double amt=strtok(NULL, s);
 					 //withdraw(account, amt);
 				 }else{
-					 printf("ERROR: enter amount");
+			  	     write(*newSock, "ERROR: Enter amount", strlen("ERROR: Enter amount"));
 				 }
 			    }else{
-				    printf("ERROR: cannot withdraw before starting a service");
+				    write(*newSock, "ERROR: cannot withdraw before starting a service", strlen("ERROR: cannot withdraw before starting a service"));
 			    }
 				  //QUERY
 			  }else if(strcmp(command, "query")==0){
 				  if(inSessionOn==1){
 					  //query(account)
 				  }else{
-					  printf("ERROR: cannot query before starting a service");
+				    write(*newSock, "ERROR: cannot query before starting a service", strlen("ERROR: cannot query before starting a service"));
 				  }
 				  //END
 			  }else if(strcmp(command, "end")==0){
@@ -228,8 +221,7 @@ void *client_thread(void* newSockfd){
 					 // end(acc, mut);
 					  inSessionOn=0;
 				  }else{
-					  printf("ERROR: cannot end session before starting a service");
-					  
+				    write(*newSock, "ERROR: cannot end session before starting a service", strlen("ERROR: cannot end session before starting a service"));
 				  }
 				  //QUIT
 			  }else if(strcmp(command, "quit")==0){
