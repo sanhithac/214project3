@@ -23,7 +23,7 @@ typedef struct Account{
 account *head_ref;
 char buffer[256];
 struct sockaddr_in serv_addr, cli_addr;
-/*
+
 int checkBankName(account* head_ref, char *name){ //check if the bankAccount already exists
    account *ptr = head_ref;
 	while(ptr != NULL){
@@ -53,7 +53,7 @@ int create(account* head_ref, char* name){ //create a new account
     printf("ERROR: inSession flag is on");
     exit(0);
    }
-
+ */
   //check for a unique acc name
    if(checkBankName(head_ref, name) == 0){
 		printf("Error: Account already exists");
@@ -136,7 +136,7 @@ void printhandler(int sig){
 	alarm(15);
 	signal(SIGALRM, handler);
 }
-*/
+
 void client_thread(void sockfd){
   
 	write(newSockfd, "Connection to server successful", strlen(buffer));
