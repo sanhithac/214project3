@@ -12,6 +12,7 @@
 #include <sys/shm.h>
 #include <signal.h>
 #include <sys/ipc.h>
+#include <math.h>
 
 typedef struct Account{
   char* accountName;
@@ -19,7 +20,7 @@ typedef struct Account{
 	int inSession; //boolean
 	struct Account *next;
 }account;
-
+int newSock;
 account *head_ref;
 char buffer[256];
 struct sockaddr_in serv_addr, cli_addr;
@@ -34,15 +35,11 @@ int checkBankName(account* head_ref, char *name){ //check if the bankAccount alr
 	}
 	return 1;
 }
-void quit(account* acc){
-  acc->inSession = 0;
-  write
-}
 
 //done
 int end(account *acc, pthread_mutex_t *mut){
 	acc->inSession=0;
-	write(newSock,"Session ended!\m",strlen(buffer));
+	write(newSock,"Session ended!\n",strlen(buffer));
 	pthread_mutex_unlock(&mut);
 	return 0;
 }
@@ -128,16 +125,16 @@ int withdraw(account* acc, double amount){
 void printhandler(int sig){
 	account  *ptr =head_ref;
 	while(ptr != NULL){
-		printf(ptr->accountName+"\t"+ptr->balance+"\t");
+	  printf("Account Name is equal to:%s\t Account Balance is equal to:  %lf\t",ptr->accountName,ptr->balance);
 		if(ptr->inSession==1)
 			printf("IN SERVICE");
 		ptr = ptr->next;
 	}
 	alarm(15);
-	signal(SIGALRM, handler);
+	signal(SIGALRM, printhandler);
 }
 
-void client_thread(void sockfd){
+void client_thread(int newSockfd){
   
 	write(newSockfd, "Connection to server successful", strlen(buffer));
 	while(1){
@@ -210,7 +207,7 @@ int main(int argc, char **argv){
 			//create new thread for client
 			pthread_t client;
 		
-			if(pthread_create(&client, 0, (void*)client_thread,(void*) &newSockfd) != 0){
+			if(pthread_create(&client, 0, (void*)client_thread, &newSockfd) != 0){
 				printf("ERROR: client thread could not be created\n");
 				continue;
 			}		
