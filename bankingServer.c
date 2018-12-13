@@ -123,10 +123,6 @@ int end(account *acc, pthread_mutex_t *mut){
 	return 0;
 }
 
-void printAccounts(account *head_ref){ //print account every 15 secs
-	printf();//print the list of accounts
-}
-
 void printhandler(int sig){
 	account  *ptr =head_ref;
 	while(ptr != NULL){
