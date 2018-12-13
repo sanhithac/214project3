@@ -24,10 +24,12 @@ typedef struct Account{
 	int inSession; //boolean
 	struct Account *next;
 }account;
+
 int newSock;
 account *head_ref;
 char buffer[256];
 struct sockaddr_in serv_addr, cli_addr;
+
 //pthread_mutex_t mut;
 
 int checkBankName(account* head_ref, char *name){ //check if the bankAccount already exists
@@ -243,13 +245,15 @@ void *client_thread(void* newSockfd){
 
 int main(int argc, char **argv){
 	if(argc <2){
-		printf("Error");
+		printf("Error: enter port number\n");
 		exit(1);
 	}
 	char buffer[256];
 	int numOfAccounts =0;
-        signal(SIGALRM, printhandler);
-	//add sigint for quitting
+	
+	signal(SIGALRM, printhandler);//retest
+ 	alarm(15);
+ 	signal(SIGINT, terminate);//finish
 	
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	
@@ -269,14 +273,14 @@ int main(int argc, char **argv){
 	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
 		error("ERROR on binding");
 	}
-	if(listen(sockfd, 2)==-1){
+	if(listen(sockfd, 10)==-1){
 		printf("ERROR: Listen error.\n");
 		return 0;
 		//change the 2 later to numOfClients that you want
 	}
 	
 	while(1){
-		if(listen(sockfd, 2)==-1){
+		if(listen(sockfd, 10)==-1){
 			printf("ERROR: Listen error.\n");
 			return 0;
 			//change the 2 later to numOfClients that you want
@@ -292,11 +296,21 @@ int main(int argc, char **argv){
 			//create new thread for client
 			pthread_t client;
 		
-			if(pthread_create(&client, 0, (void*)client_thread, &newSockfd) != 0){
+			if(pthread_create(&client, 0, client_thread,(void *)&newSockfd) != 0){
 				printf("ERROR: client thread could not be created\n");
 				continue;
 			}		
 		}
 	return 0;
 	}
+}
+void terminate(int sig){
+ 	//stop timer
+ 	//lock all accounts
+ 	//disconnect all clients
+ 	//send all clients shutdown message
+ 	//deallocate all memory
+ 	//close all sockets
+ 	//join all threads
+ 	return;
 }
