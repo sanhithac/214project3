@@ -32,6 +32,18 @@ struct sockaddr_in serv_addr, cli_addr;
 
 //pthread_mutex_t mut;
 
+int checkBankName(account* head_ref, char *name);
+void quit(account* acc);
+void query(account* acc);
+int end(account *acc, pthread_mutex_t *mut);
+account *create(account* head_ref, char* name);
+account *serve(account * head_ref, char* name, pthread_mutex_t *mut);
+int deposit(account* acc, double amount);
+int withdraw(account* acc, double amount);
+void printhandler(int sig);
+void *client_thread(void* newSockfd);
+void terminate(int sig);
+
 int checkBankName(account* head_ref, char *name){ //check if the bankAccount already exists
    account *ptr = head_ref;
 	while(ptr != NULL){
