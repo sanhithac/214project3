@@ -41,7 +41,7 @@ int checkBankName(account* head_ref, char *name){ //check if the bankAccount alr
 
 int create(account* head_ref, char* name){ //create a new account
   //check for inSession before continuing
-  if(inSession == 1){
+  if(inSessionOn == 1){
     printf("ERROR: inSession flag is on");
     exit(0);
    }
@@ -51,13 +51,14 @@ int create(account* head_ref, char* name){ //create a new account
 		exit(0);
 	}
    //creating a new node
-   struct account* ptr = (struct account*)malloc(sizeof(account));
-   struct account* last = head_ref;
-   ptr->accountName = name;
+   account* ptr = (account*)malloc(sizeof(account));
+   account* last = head_ref;
+   ptr->accountName = malloc(strlen(name)+1);
+   strcpy(ptr->accountName,name);
    ptr->balance =0;
    ptr->next = NULL;
    //adding to the end of the LL
-   if(head_ref==NULL){
+   if(head_ref==NULL){  
      head_ref = ptr;
      return 0;
    }
