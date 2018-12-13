@@ -150,25 +150,101 @@ void printhandler(int sig){
 	signal(SIGALRM, printhandler);
 }
 
-void client_thread(int newSockfd){
-  
-	write(newSockfd, "Connection to server successful", strlen(buffer));
+void *client_thread(void* newSockfd){
+        int *newSock=(int *)newSockfd;
+	char buffer[256];
+	int inSessionOn=0;//boolean
+	write(*newSock, "Connection to server successful", strlen("Connection to server successful"));
 	while(1){
 		bzero(buffer,256);
-		int n = read(newSockfd,buffer,255);
+		int n = read(*newSock,buffer,255);
 		if(n<0){
 			error("ERROR reading from socket");
 		}
-		else{
-			//tokenize the input
-			//check what the command is
-			//call the respective command
+			else{
+	        
+			  const char s[2]=" ";
+			  char *command=strtok(buffer, s);
+		     		//CREATE
+			  if(strcmp(command, "create")==0){
+			    if(inSessionOn==0){
+			      if(token!=NULL){
+			        char *name=strtok(NULL, s);
+			        create(head_ref, name);//return account
+			      }
+			      else{
+			  	     printf("ERROR: enter name");//make these writes
+			      }
+			    }else{
+				    printf("ERROR: cannot create account while in session");
+			    }
+				  //SERVE
+			  }else if(strcmp(command, "serve")==0){
+			    if(inSessionOn==0){
+			      if(token!=NULL){
+			        char *name=strtok(NULL, s);
+			        //serve(name, mut)//return account
+				 inSessionOn=1;
+			      }else{
+			  	       printf("ERROR: enter name");
+			      }
+			    }else{
+				    printf("ERROR: cannot start another service while in session");
+			    }
+				  //DEPOSIT
+			  }else if(strcmp(command, "deposit")==0){
+			    if(inSessionOn==1){
+			   	 if(token!=NULL){
+			     		 double amt=strtok(NULL, s);
+					 //deposit(account, amt);
+				 }else{
+					 printf("ERROR: enter amountt");
+				 }
+			    }else{
+				    printf("ERROR: cannot deposit before starting a service");
+			    }
+				  //WITHDRAW
+			  }else if(strcmp(command, "withdraw")==0){
+			    if(inSessionOn==1){
+			   	 if(token!=NULL){
+			     		 double amt=strtok(NULL, s);
+					 //withdraw(account, amt);
+				 }else{
+					 printf("ERROR: enter amount");
+				 }
+			    }else{
+				    printf("ERROR: cannot withdraw before starting a service");
+			    }
+				  //QUERY
+			  }else if(strcmp(command, "query")==0){
+				  if(inSessionOn==1){
+					  //query(account)
+				  }else{
+					  printf("ERROR: cannot query before starting a service");
+				  }
+				  //END
+			  }else if(strcmp(command, "end")==0){
+				  if(inSessionOn==1){
+					 // end(acc, mut);
+					  inSessionOn=0;
+				  }else{
+					  printf("ERROR: cannot end session before starting a service");
+					  
+				  }
+				  //QUIT
+			  }else if(strcmp(command, "quit")==0){
+				  //quit(account);
+			  }else{
+			    printf("ERROR: command not valid");
+			  }
 		}
-		printf("Here is the message: %s\n", buffer); 
+		/*	printf("Here is the message: %s\n", buffer); 
 		n = write(newSockfd, "I got your message", 18); 
 		if(n<0)
-			error("ERROR writing to socket");
+		error("ERROR writing to socket");*/
 	}
+	return;
+
 }
 
 
