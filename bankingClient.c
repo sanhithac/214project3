@@ -107,11 +107,11 @@ void *readFromServer(void *fd){ //read from server
 	//recv
 	int sockfd = *(int*)fd;
 	while(1){
-		memset(buffer, 0, strlen(buffer));
+		
 		int num = recv(sockfd, sendToServerBuff, sizeof(sendToServerBuff),0);
-		if(num <=0){
-			printf("ERROR: connection is closed.\n");
-			break;
+		while(num > 0){
+		  printf("%s\n", buffer);
+		  memset(buffer, 0, strlen(buffer));
 		}
 		if(strcmp(sendToServerBuff, "end")==0){
 			printf("Client closing.\n");
