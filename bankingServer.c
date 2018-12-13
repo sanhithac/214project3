@@ -147,6 +147,7 @@ void *client_thread(void* newSockfd){
         int *newSock=(int *)newSockfd;
 	char buffer[256];
 	int inSessionOn=0;//boolean
+	account *acc;
 	write(*newSock, "Connection to server successful", strlen("Connection to server successful"));
 	while(1){
 		bzero(buffer,256);
@@ -163,7 +164,7 @@ void *client_thread(void* newSockfd){
 			    if(inSessionOn==0){
 			      if(token!=NULL){
 			        char *name=strtok(NULL, s);
-			        create(head_ref, name);//return account
+			        acc=create(head_ref, name);
 			      }
 			      else{
 			  	     write(*newSock, "ERROR: Enter name", strlen("ERROR: Enter name"));
@@ -176,7 +177,7 @@ void *client_thread(void* newSockfd){
 			    if(inSessionOn==0){
 			      if(token!=NULL){
 			        char *name=strtok(NULL, s);
-			        //serve(name, mut)//return account
+			        acc=serve(head_ref, name, mut);
 				 inSessionOn=1;
 			      }else{
 			  	     write(*newSock, "ERROR: Enter name", strlen("ERROR: Enter name"));
@@ -189,7 +190,7 @@ void *client_thread(void* newSockfd){
 			    if(inSessionOn==1){
 			   	 if(token!=NULL){
 			     		 double amt=strtok(NULL, s);
-					 //deposit(account, amt);
+					 deposit(acc, amt);
 				 }else{
 			  	     write(*newSock, "ERROR: Enter amount", strlen("ERROR: Enter amount"));
 				 }
@@ -201,7 +202,7 @@ void *client_thread(void* newSockfd){
 			    if(inSessionOn==1){
 			   	 if(token!=NULL){
 			     		 double amt=strtok(NULL, s);
-					 //withdraw(account, amt);
+					 withdraw(acc, amt);
 				 }else{
 			  	     write(*newSock, "ERROR: Enter amount", strlen("ERROR: Enter amount"));
 				 }
@@ -211,21 +212,21 @@ void *client_thread(void* newSockfd){
 				  //QUERY
 			  }else if(strcmp(command, "query")==0){
 				  if(inSessionOn==1){
-					  //query(account)
+					  query(acc)
 				  }else{
 				    write(*newSock, "ERROR: cannot query before starting a service", strlen("ERROR: cannot query before starting a service"));
 				  }
 				  //END
 			  }else if(strcmp(command, "end")==0){
 				  if(inSessionOn==1){
-					 // end(acc, mut);
+					 end(acc, mut);
 					  inSessionOn=0;
 				  }else{
 				    write(*newSock, "ERROR: cannot end session before starting a service", strlen("ERROR: cannot end session before starting a service"));
 				  }
 				  //QUIT
 			  }else if(strcmp(command, "quit")==0){
-				  //quit(account);
+				  quit(acc);
 			  }else{
 			    printf("ERROR: command not valid");
 			  }
@@ -247,7 +248,7 @@ int main(int argc, char **argv){
 	}
 	char buffer[256];
 	int numOfAccounts =0;
-        //signal(SIGALRM, printhandler);
+        signal(SIGALRM, printhandler);
 	//add sigint for quitting
 	
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
