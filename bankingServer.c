@@ -21,12 +21,8 @@ typedef struct Account{
 }account;
 
 account *head_ref;
-int inSession =0;
 char buffer[256];
 struct sockaddr_in serv_addr, cli_addr;
-
-
-
 
 int checkBankName(account* head_ref, char *name){ //check if the bankAccount already exists
    account *ptr = head_ref;
@@ -41,10 +37,11 @@ int checkBankName(account* head_ref, char *name){ //check if the bankAccount alr
 
 int create(account* head_ref, char* name){ //create a new account
   //check for inSession before continuing
-  if(inSessionOn == 1){
+ /* if(inSessionOn == 1){
     printf("ERROR: inSession flag is on");
     exit(0);
    }
+*/
   //check for a unique acc name
    if(checkBankName(head_ref, name) == 0){
 		printf("Error: Account already exists");
