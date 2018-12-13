@@ -10,8 +10,11 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/shm.h>
-#include <signal.h>
 #include <sys/ipc.h>
+#include <signal.h>
+#include <stdbool.h>
+# define SHM_SIZE 1024
+# define BUFFSIZE 256
 
 typedef struct Account{
   char* accountName;
@@ -23,6 +26,10 @@ typedef struct Account{
 account *head_ref;
 char buffer[256];
 struct sockaddr_in serv_addr, cli_addr;
+
+void printhandler(int sig);
+void terminate(int sig);
+void *client_thread(void* newSockfd);
 
 int checkBankName(account* head_ref, char *name){ //check if the bankAccount already exists
    account *ptr = head_ref;
@@ -132,66 +139,86 @@ void printhandler(int sig){
 	signal(SIGALRM, handler);
 }
 
-void client_thread(int newSockfd){
-	write(newSockfd, "Connection to server successful", strlen(buffer));
+void *client_thread(void* newSockfd){
+        int *newSock=(int *)newSockfd;
+	char buffer[256];
+	write(*newSock, "Connection to server successful", strlen("Connection to server successful"));
 	while(1){
 		bzero(buffer,256);
-		int n = read(newSockfd,buffer,255);
+		int n = read(*newSock,buffer,255);
 		if(n<0){
 			error("ERROR reading from socket");
 		}
-		else{
-			//tokenize the input
-			//check what the command is
+			else{
+	        
+			  const char s[2]=" ";
+			  char *command=strtok(buffer, s);
+		     
+			  if(strcmp(command, "create")==0){
+			    if(token!=NULL)
+			      char *name=strtok(NULL, s);
+			  }else if(strcmp(command, "serve")==0){
+			    if(token!=NULL)
+			      char *name=strtok(NULL, s);
+			  }else if(strcmp(command, "deposit")==0){
+			    if(token!=NULL)
+			      double amt=strtok(NULL, s);
+			  }else if(strcmp(command, "withdraw")==0){
+			    if(token!=NULL)
+			      double amt=strtok(NULL, s);
+			  }else if(strcmp(command, "query")==0){
+			  }else if(strcmp(command, "end")==0){
+			  }else if(strcmp(command, "quit")==0){
+			  }else{
+			    printf("ERROR: command not valid");
+			  }
 			//call the respective command
 		}
-		printf("Here is the message: %s\n", buffer); 
+		/*	printf("Here is the message: %s\n", buffer); 
 		n = write(newSockfd, "I got your message", 18); 
 		if(n<0)
-			error("ERROR writing to socket");
+		error("ERROR writing to socket");*/
 	}
-}
+	return;
 
+}
 
 int main(int argc, char **argv){
 	if(argc <2){
-		printf("Error");
+		printf("Error: enter port number\n");
 		exit(1);
 	}
-	char buffer[256];
+	
 	int numOfAccounts =0;
-        //signal(SIGALRM, printhandler);
-	//add sigint for quitting
-	
+
+	signal(SIGALRM, printhandler);//retest
+	alarm(15);
+	signal(SIGINT, terminate);//finish
+
+	struct sockaddr_in serv_addr;
+	struct sockaddr_in cli_addr;
+
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	
-	/*if(sockfd < 0){
-		error("Error opening Socket");
-	} */
-	
-	//bzero((char *)&serv_addr, sizeof(serv_addr)); //erases memory at this addr
+
 	int port = atoi(argv[1]);
-	
+
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	serv_addr.sin_port = htons(port);
-	
-	//int k = gethostname(argv[1]);
-	
+
 	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
-		error("ERROR on binding");
+		error("ERROR: cannot bind");
 	}
-	if(listen(sockfd, 2)==-1){
+
+	if(listen(sockfd, 10)==-1){
 		printf("ERROR: Listen error.\n");
-		return NULL;
-		//change the 2 later to numOfClients that you want
+		return 0;
 	}
 	
 	while(1){
-		if(listen(sockfd, 2)==-1){
+		if(listen(sockfd, 10)==-1){
 			printf("ERROR: Listen error.\n");
-			return NULL;
-			//change the 2 later to numOfClients that you want
+			return 0;
 		}
 		else{
 			int clilen = sizeof(cli_addr);
@@ -201,15 +228,26 @@ int main(int argc, char **argv){
 				continue;
 			}
 			printf("Connection to client successful.\n");
-			//create new thread for client
 			pthread_t client;
 		
-			if(pthread_create(&client, 0, client_thread, &newSockfd) != 0){
+			if(pthread_create(&client, 0, client_thread,(void *)&newSockfd) != 0){
 				printf("ERROR: client thread could not be created\n");
 				continue;
-			}		
+			} 
 		}
-	return 0;
 	}
 
+	return 0;
+}
+
+void terminate(int sig){
+	printf("got sig\n");
+	//stop timer
+	//lock all accounts
+	//disconnect all clients
+	//send all clients shutdown message
+	//deallocate all memory
+	//close all sockets
+	//join all threads
+	return;
 }
