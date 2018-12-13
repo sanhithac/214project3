@@ -15,9 +15,9 @@
 #include <signal.h>
 
 
-static int commandControl; //switch that controls thread synchronization
-char startedsession[100];  //hold the name of the session started. If in case signint occurs use this to finish the session
-int quiting =-1;	       //flag -1 -> session not started 0 -> session started not finished 1->session finished
+static int commandControl; 
+char startedsession[100];  
+int quiting =-1;	      
 int sockd;
 struct sockaddr_in serv_addr, cli_addr;
 
@@ -51,7 +51,7 @@ void sig_handler(int signo){
 	}
 }
 
-int checkConnection(int sd) //spammed periodically to check whether the server is still running, otherwise terminates client.
+int checkConnection(int sd) 
 {
 	int len = sizeof(cli_addr);
 	int retval = getsockopt(sd, SOL_SOCKET, SO_ERROR, &error, &len);
