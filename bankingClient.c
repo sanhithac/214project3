@@ -82,7 +82,7 @@ void *readToServer(void *fd){ //sends to server
 			command[strlen(command)-1] = '\0';
 		}
 		int commandAssigned = sscanf(command, "%s %s %s", op, arg, err);
-		
+		printf("%s\n", command);
 		//If there are two arguments then they will be concatenated
 		if(commandAssigned == 2){
 			strcat(op, " ");
@@ -117,9 +117,9 @@ void *readFromServer(void *fd){ //read from server
 			printf("Client closing.\n");
 			exit(0);
 		}
-		if(sendToServerBuff[0] == NULL){
+		/*	if(sendToServerBuff[0] == NULL){
 			printf("%s\n", sendToServerBuff);
-		}
+			} */
 	}
 	return NULL;
 }
@@ -139,17 +139,24 @@ int main(int argc, char** argv){
 		error("Error opening Socket");
 	}
 
+	struct hostent*server_ip = gethostbyname(argv[1]);
+	bzero((char*)&serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(port);
-	serv_addr.sin_addr.s_addr = inet_addr(argv[2]);
-
+	//	serv_addr.sin_addr.s_addr = inet_addr(argv[2]);
+	bcopy((char*) server_ip->h_addr, (char*)&serv_addr.sin_addr, server_ip ->h_length);
 
 	//attempt connecting to the server
-	while(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) <0){
+	int try = connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)); 
+
+			  /*	while(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) <0){
 		printf("Establishing connection with server...\n");
 		sleep(3);
 	}
-
+			  */
+			  if(try <0){
+			    printf("Connectin to socket fail");
+			  }
 	//first read to insure connection
 	int n;
 	if((n=read(sockfd,buffer,sizeof(buffer)-1)) > 0){
